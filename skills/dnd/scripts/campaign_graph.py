@@ -654,6 +654,8 @@ def _apply_proposal(data: dict, p: dict, no_auto_nodes: bool = False) -> "tuple[
 
 
 def cmd_extract(args) -> int:
+    import re
+    import shutil
     import subprocess
     campaign_dir = find_campaign(args.campaign)
 
@@ -702,11 +704,22 @@ def cmd_extract(args) -> int:
     archive = campaign_dir / "session-log-archive.md"
     log = campaign_dir / "session-log.md"
 
+    last_session_only = getattr(args, "last_session_only", False)
     sources = []
-    if archive.exists():
-        sources.append((archive.name, archive.read_text()))
+    if not last_session_only and archive.exists():
+        sources.append((archive.name, archive.read_text(encoding="utf-8")))
     if log.exists():
-        sources.append((log.name, log.read_text()))
+        if last_session_only:
+            # Trim to the last "## Session N" block only — mirrors the
+            # deterministic extractor's behavior so both modes agree on
+            # what "last session" means.
+            text = log.read_text(encoding="utf-8")
+            heads = list(re.finditer(r"^##\s*Session\s+\d+", text, re.MULTILINE | re.IGNORECASE))
+            if heads:
+                text = text[heads[-1].start():]
+            sources.append((log.name, text))
+        else:
+            sources.append((log.name, log.read_text(encoding="utf-8")))
     if not sources:
         print(f"no session-log files in {campaign_dir}", file=sys.stderr)
         return 1
@@ -714,14 +727,15 @@ def cmd_extract(args) -> int:
     prompt = _build_extraction_prompt(sources)
     print(f"# Calling Haiku — input chars: {len(prompt)} from {len(sources)} files", file=sys.stderr)
 
+    claude_bin = shutil.which("claude") or "claude"
     result = subprocess.run(
         [
-            "claude", "-p",
+            claude_bin, "-p",
             "--model", "claude-haiku-4-5-20251001",
             "--system-prompt", _EXTRACTION_SYSTEM,
             prompt,
         ],
-        capture_output=True, text=True, timeout=420,
+        capture_output=True, text=True, timeout=420, encoding="utf-8",
     )
     if result.returncode != 0:
         print(f"claude returned {result.returncode}: {result.stderr}", file=sys.stderr)
