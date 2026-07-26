@@ -727,16 +727,30 @@ def cmd_extract(args) -> int:
     prompt = _build_extraction_prompt(sources)
     print(f"# Calling Haiku — input chars: {len(prompt)} from {len(sources)} files", file=sys.stderr)
 
+    # The system prompt and session text are both multi-line. On Windows the
+    # resolved "claude" binary is a .cmd shim, which the OS can only launch by
+    # routing through an implicit cmd.exe — and cmd.exe's line-based parsing
+    # truncates any argument containing a literal newline. Keep every argument
+    # single-line: the system prompt goes through --system-prompt-file (a temp
+    # file), and the (multi-line) extraction prompt goes over stdin instead of
+    # as a positional argument.
+    import tempfile
     claude_bin = shutil.which("claude") or "claude"
-    result = subprocess.run(
-        [
-            claude_bin, "-p",
-            "--model", "claude-haiku-4-5-20251001",
-            "--system-prompt", _EXTRACTION_SYSTEM,
-            prompt,
-        ],
-        capture_output=True, text=True, timeout=420, encoding="utf-8",
-    )
+    fd, sys_prompt_path = tempfile.mkstemp(suffix=".txt", prefix="dnd-extract-sysprompt-")
+    try:
+        with open(fd, "w", encoding="utf-8") as f:
+            f.write(_EXTRACTION_SYSTEM)
+        result = subprocess.run(
+            [
+                claude_bin, "-p",
+                "--model", "claude-haiku-4-5-20251001",
+                "--system-prompt-file", sys_prompt_path,
+            ],
+            input=prompt,
+            capture_output=True, text=True, timeout=420, encoding="utf-8",
+        )
+    finally:
+        pathlib.Path(sys_prompt_path).unlink(missing_ok=True)
     if result.returncode != 0:
         print(f"claude returned {result.returncode}: {result.stderr}", file=sys.stderr)
         return 1
