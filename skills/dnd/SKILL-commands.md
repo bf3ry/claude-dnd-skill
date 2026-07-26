@@ -591,14 +591,19 @@ Run `scripts/dice.py <notation>`. Display output verbatim. Examples: `d20`, `2d6
 ---
 
 ## `/dm:dnd combat start`
-1. Identify combatants; collect name, DEX mod, HP, AC, type (pc/npc) for each.
-2. Run `combat.py init '<JSON>'` — auto-roll initiative for every combatant including PCs. Display tracker and per-combatant roll breakdown.
-3. Send initiative to display:
+1. Identify combatants; collect name, **Agilité (Ag)**, **Blessures** (actuelles/max), **Points d'Armure par localisation** (Tête/Corps/Bras/Jambes), type (pc/npc).
+2. **Ordre d'engagement** — pour chaque combattant, lance :
+   ```bash
+   python3 ${CLAUDE_SKILL_DIR}/scripts/wfrp.py test --carac <Ag> --label "<Nom> — Ordre d'engagement (Ag)"
+   ```
+   Trie les combattants par **DR décroissant** (Degrés de Réussite renvoyés par le script). En cas d'égalité de DR, départage sur l'Agilité brute la plus haute — même logique que `wfrp.py oppose`.
+3. Envoie l'ordre d'engagement au display :
    ```bash
    python3 ${CLAUDE_SKILL_DIR}/display/send.py << 'DNDEND'
-   ⚔️ Initiative — Round 1
-   [Name]: d20(N) + DEX = total
-   Turn order: [Name] → [Name] → ...
+   ⚔️ Ordre d'engagement — Round 1
+   [Nom] — Ag (N) | sans modificateur -> seuil N | d100 = XX -> VERDICT, DR ±N
+   [Nom] — Ag (N) | sans modificateur -> seuil N | d100 = XX -> VERDICT, DR ±N
+   Ordre : [Nom] → [Nom] → ...
    DNDEND
    ```
 4. Push turn order to stats sidebar:
@@ -606,37 +611,28 @@ Run `scripts/dice.py <notation>`. Display output verbatim. Examples: `d20`, `2d6
    python3 ${CLAUDE_SKILL_DIR}/display/push_stats.py --turn-order '{"order":[...],"current":"FirstName","round":1}'
    ```
 5. Save STATE_JSON to `state.md` under `## Active Combat`.
-6. Step through turns using the per-turn sequence (in SKILL.md Active DM Mode).
-7. On combat end: update HP in character sheets, clear `## Active Combat`, `push_stats.py --turn-clear`, narrate aftermath, send XP summary, run `tracker.py -c <campaign> clear`.
-
-**XP awards** go in the final display send:
-```bash
-python3 ${CLAUDE_SKILL_DIR}/display/send.py << 'DNDEND'
-[combat aftermath narration]
-
-⭐ XP Awarded
-- [Enemy] defeated: N XP
-- [Objective] completed: N XP
-- Total: N XP ÷ [players] = N XP each
-- [Name]: N / 300 XP | [Name]: N / 300 XP
-DNDEND
-```
+6. **Résolution de chaque attaque** (à chaque tour, pour chaque tentative) :
+   a. Jet de l'attaquant : `wfrp.py test --carac <compétence d'attaque> --label "<Nom> — <Compétence> (<Carac>)" [--mod ±N] [--diff <difficulté>]`.
+   b. Si le défenseur tente une esquive ou une parade, jet du défenseur de la même façon : `--label "<Nom> — Esquive (Ag)"` ou `"<Nom> — Parade (CC)"`.
+   c. **Compare les DR** exactement comme dans l'exemple de la section « Système — WFRP4, résolution » en tête de SKILL.md : DR net = DR attaquant − DR défenseur (ou DR attaquant seul si aucune défense n'est tentée). L'attaque ne touche que si le DR net est positif.
+   d. **Dégâts** = dégâts de l'arme + Bonus de Force − Points d'Armure de la localisation touchée, exprimés en Blessures. Un coup qui touche inflige toujours au moins 1 Blessure.
+   e. Envoie chaque jet au display via `send.py --dice`, au format complet (compétence, seuil, dé, verdict, DR) — jamais résumé.
+7. En fin de combat : met à jour les Blessures dans les fiches de personnage, efface `## Active Combat`, `push_stats.py --turn-clear`, narre les conséquences, `tracker.py -c <campaign> clear`. **Ne propose pas de jalon pour le combat gagné en tant que tel** — seule la conséquence narrative peut en mériter un (voir la section Jalons de SKILL.md).
 
 ---
 
 ## `/dm:dnd rest <short|long>`
-**Short (1 hour):**
-1. Ask how many Hit Dice the player spends. Roll `d[hit-die] + CON mod` per die via `dice.py`. Update HP, push `push_stats.py --player NAME --hp`.
-2. Note class features that recharge (e.g. Second Wind → `push_stats.py --player NAME --second-wind true`).
+**Court (quelques heures) :**
+1. Calcule la Résonance manquante (max − actuelle) et récupère-en la **moitié, arrondie au supérieur**. Met à jour `[Résonance X/8]` sur la fiche du personnage.
+2. Note les états mineurs qui se dissipent naturellement avec le repos, à l'appréciation du MJ — un repos court ne restaure pas de Blessures.
 3. Advance time: `calendar.py -c <campaign> rest short`
-4. Clear encounter conditions: `tracker.py -c <campaign> clear` (concentration may persist — ask)
+4. Clear encounter conditions: `tracker.py -c <campaign> clear` (les effets durables — malus de mutation, Emprise-Locomotion — persistent sauf indication contraire)
 
-**Long (8 hours):**
-1. Restore all HP, half max Hit Dice (round up), all spell slots, most class features. Update sheet.
-2. Push: `push_stats.py --player NAME --hp <max> <max>` and `--second-wind true`.
-3. Advance time: `calendar.py -c <campaign> rest long`
-4. Clear all tracker state: `tracker.py -c <campaign> clear --all`
-5. Update `state.md` in-world date to match calendar output.
+**Long (une nuit complète) :**
+1. Restaure la Résonance au maximum (`[Résonance max/max]`). Si un malus d'Emprise-Locomotion est actif, réduis-le d'un cran sans descendre sous le plancher défini dans `characters/Erys.md`, si applicable. Met à jour la fiche.
+2. Advance time: `calendar.py -c <campaign> rest long`
+3. Clear all tracker state: `tracker.py -c <campaign> clear --all`
+4. Update `state.md` in-world date to match calendar output.
 
 ---
 
