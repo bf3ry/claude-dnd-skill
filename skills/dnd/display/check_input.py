@@ -17,6 +17,12 @@ One line per character. Same format as autorun_wait.py output.
 import os
 import sys
 
+# Text-mode stdin/stdout/open() default to the platform's preferred encoding
+# (cp1252 on Windows, not UTF-8), which silently corrupts accented characters
+# read from queued player input and printed back to the DM's terminal. Force
+# UTF-8 for this process's stdout.
+sys.stdout.reconfigure(encoding="utf-8")
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from runtime_paths import rt          # writable runtime dir (update-safe)
 QUEUE_FILE = rt(".input_queue")
@@ -28,7 +34,7 @@ def _narration_directive():
     """A bracketed length directive the DM honors this turn, or '' if unset."""
     try:
         if os.path.exists(NARRATION_TARGET):
-            n = open(NARRATION_TARGET).read().strip()
+            n = open(NARRATION_TARGET, encoding="utf-8").read().strip()
             if n.isdigit() and int(n) > 0:
                 return (f"[[Narration length for this turn: aim for ~{n} words. "
                         f"The table set this — keep it concise; do not pad.]]")
@@ -42,7 +48,7 @@ def _roll_directives():
     try:
         if os.path.exists(ROLL_PREFS):
             import json
-            with open(ROLL_PREFS) as f:
+            with open(ROLL_PREFS, encoding="utf-8") as f:
                 prefs = json.load(f)
             lines = [f"[[{c} roll mode: {m}]]" for c, m in prefs.items()
                      if m in ("auto", "players")]
@@ -54,7 +60,7 @@ def _roll_directives():
 
 try:
     if os.path.exists(QUEUE_FILE):
-        with open(QUEUE_FILE) as f:
+        with open(QUEUE_FILE, encoding="utf-8") as f:
             content = f.read().strip()
         os.remove(QUEUE_FILE)
         if content:

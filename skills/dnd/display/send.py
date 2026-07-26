@@ -68,7 +68,7 @@ if _DISPLAY_DIR not in sys.path:
     sys.path.insert(0, _DISPLAY_DIR)
 from runtime_paths import rt          # writable runtime dir (update-safe)
 _SCHEME_FILE = os.path.join(_DISPLAY_DIR, ".scheme")   # launch marker → code dir
-_SCHEME = open(_SCHEME_FILE).read().strip() if os.path.exists(_SCHEME_FILE) else "http"
+_SCHEME = open(_SCHEME_FILE, encoding="utf-8").read().strip() if os.path.exists(_SCHEME_FILE) else "http"
 BASE_URL    = f"{_SCHEME}://localhost:5001"
 FLASK_URL   = f"{BASE_URL}/chunk"
 STATS_URL   = f"{BASE_URL}/stats"
@@ -95,7 +95,7 @@ else:
 
 def _read_token() -> str:
     try:
-        return open(TOKEN_FILE).read().strip()
+        return open(TOKEN_FILE, encoding="utf-8").read().strip()
     except FileNotFoundError:
         return ""
 
@@ -552,11 +552,19 @@ def main() -> None:
         if not _other:
             return
 
+    # Read stdin as raw bytes and decode explicitly as UTF-8. Text-mode
+    # sys.stdin.read() decodes using the platform's preferred encoding
+    # (cp1252 on Windows, not UTF-8), which silently corrupts every accented
+    # character in the heredoc body before it's re-encoded for the HTTP
+    # POST — the exact "é becomes Ã©" mojibake pattern.
+    def _read_stdin_utf8() -> str:
+        return sys.stdin.buffer.read().decode("utf-8")
+
     _has_content_flag = bool(args.player or args.npc or args.dice or args.tutor or args.action)
     if _has_content_flag:
-        text = sys.stdin.read()
+        text = _read_stdin_utf8()
     else:
-        text = "" if sys.stdin.isatty() else sys.stdin.read()
+        text = "" if sys.stdin.isatty() else _read_stdin_utf8()
     token = _read_token()
 
     # ── Inspiration award/spend ──────────────────────────────────────────────

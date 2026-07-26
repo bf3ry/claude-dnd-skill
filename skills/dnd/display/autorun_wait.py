@@ -17,6 +17,12 @@ import secrets
 import subprocess
 import urllib.request
 
+# Text-mode stdin/stdout/open() default to the platform's preferred encoding
+# (cp1252 on Windows, not UTF-8), which silently corrupts accented characters
+# read from or printed back to the DM's terminal. Force UTF-8 everywhere in
+# this process.
+sys.stdout.reconfigure(encoding="utf-8")
+
 DISPLAY_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(DISPLAY_DIR, "..", "scripts"))
 PUSH = os.path.join(DISPLAY_DIR, "push_stats.py")
@@ -33,15 +39,15 @@ SESSION_FILE = os.path.join(RT, ".autorun-session")
 
 # Invalidate any previous wait loop by writing a new session id (python write — TCC-ok)
 my_session = secrets.token_hex(8)
-with open(SESSION_FILE, "w") as f:
+with open(SESSION_FILE, "w", encoding="utf-8") as f:
     f.write(my_session)
 
 # Resolve autorun interval from the active campaign's state.md (default 60s)
 interval = 60
 try:
     import re
-    camp = open(os.path.join(RT, ".campaign")).read().strip()
-    txt = (find_campaign(camp) / "state.md").read_text(errors="replace")
+    camp = open(os.path.join(RT, ".campaign"), encoding="utf-8").read().strip()
+    txt = (find_campaign(camp) / "state.md").read_text(encoding="utf-8", errors="replace")
     m = re.search(r"autorun_interval:\s*(\d+)", txt)
     if m:
         interval = int(m.group(1))
@@ -56,13 +62,13 @@ content = ""
 for _ in range(1800):  # 0.3s * 1800 = 9 min
     if os.path.exists(QFILE):
         try:
-            content = open(QFILE).read()
+            content = open(QFILE, encoding="utf-8").read()
             os.unlink(QFILE)
         except Exception:
             content = ""
         break
     try:
-        if open(SESSION_FILE).read().strip() != my_session:
+        if open(SESSION_FILE, encoding="utf-8").read().strip() != my_session:
             break
     except Exception:
         break
@@ -70,7 +76,7 @@ for _ in range(1800):  # 0.3s * 1800 = 9 min
 
 # Clean up our session file if it's still ours
 try:
-    if open(SESSION_FILE).read().strip() == my_session:
+    if open(SESSION_FILE, encoding="utf-8").read().strip() == my_session:
         os.unlink(SESSION_FILE)
 except Exception:
     pass
@@ -81,8 +87,8 @@ subprocess.run([sys.executable, PUSH, "--autorun-waiting", "false"], capture_out
 if content:
     try:
         scheme_file = os.path.join(DISPLAY_DIR, ".scheme")
-        scheme = open(scheme_file).read().strip() if os.path.exists(scheme_file) else "http"
-        token = open(os.path.join(RT, ".token")).read().strip()
+        scheme = open(scheme_file, encoding="utf-8").read().strip() if os.path.exists(scheme_file) else "http"
+        token = open(os.path.join(RT, ".token"), encoding="utf-8").read().strip()
         ctx = None
         if scheme == "https":
             ctx = ssl.create_default_context()

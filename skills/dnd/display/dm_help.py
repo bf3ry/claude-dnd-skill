@@ -23,8 +23,10 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent / "scripts"))
 from paths import find_campaign as _find_campaign, skill_root as _skill_root, runtime_dir as _runtime_dir
 
@@ -58,7 +60,7 @@ def get_recent_display(n: int = 10) -> str:
     if not LOG_FILE.exists():
         return ""
     try:
-        data = json.loads(LOG_FILE.read_text())
+        data = json.loads(LOG_FILE.read_text(encoding="utf-8"))
     except Exception:
         return ""
     recent = data[-n:] if len(data) >= n else data
@@ -89,7 +91,7 @@ def get_campaign_state(campaign: str) -> str:
     state_path = _find_campaign(campaign) / "state.md"
     if not state_path.exists():
         return ""
-    text = state_path.read_text()
+    text = state_path.read_text(encoding="utf-8")
     parts = []
     for header in STATE_SECTIONS:
         match = re.search(
@@ -116,7 +118,7 @@ def get_graph_context(campaign: str) -> str:
     state_path = _find_campaign(campaign) / "state.md"
     if not state_path.exists():
         return ""
-    text = state_path.read_text()
+    text = state_path.read_text(encoding="utf-8")
     loc_match = re.search(r"^- \*\*Location:\*\*\s*(.+)$", text, re.MULTILINE)
     sess_match = re.search(r"\*\*Session count:\*\*\s*(\d+)", text)
     if not loc_match:
@@ -135,7 +137,7 @@ def get_graph_context(campaign: str) -> str:
     if sess_match:
         cmd += ["--at-session", sess_match.group(1)]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5, encoding="utf-8")
     except Exception:
         return ""
     out = (result.stdout or "").strip()
@@ -155,7 +157,7 @@ def get_arc_context(campaign: str) -> str:
     if not state_path.exists():
         return ""
 
-    text = state_path.read_text()
+    text = state_path.read_text(encoding="utf-8")
 
     # Extract the YAML block inside ## Campaign Arc
     arc_match = re.search(
@@ -236,7 +238,7 @@ def get_session_context(campaign: str) -> str:
     log_path = _find_campaign(campaign) / "session-log.md"
     if not log_path.exists():
         return ""
-    text = log_path.read_text()
+    text = log_path.read_text(encoding="utf-8")
 
     # Find all session headers — "## Session N" or "## Session N — ..."
     matches = list(re.finditer(r"^## Session \d+", text, re.MULTILINE))
@@ -296,17 +298,34 @@ def call_claude(display: str, state: str, session: str, arc: str, graph: str = "
 
     prompt = "\n\n".join(prompt_parts)
 
-    result = subprocess.run(
-        [
-            "claude", "-p",
-            "--model", "claude-sonnet-4-6",
-            "--system-prompt", system,
-            prompt,
-        ],
-        capture_output=True,
-        text=True,
-        timeout=60,
-    )
+    # The system prompt and context prompt are both multi-line. On Windows the
+    # resolved "claude" binary is a .cmd shim, which the OS can only launch by
+    # routing through an implicit cmd.exe — and cmd.exe's line-based parsing
+    # truncates any argument containing a literal newline. Keep every argument
+    # single-line: the system prompt goes through --system-prompt-file (a temp
+    # file), and the (multi-line) context prompt goes over stdin instead of as
+    # a positional argument. shutil.which resolves the real claude.cmd path,
+    # since bare "claude" raises FileNotFoundError under Windows list-mode
+    # subprocess (no PATHEXT search).
+    claude_bin = shutil.which("claude") or "claude"
+    fd, sys_prompt_path = tempfile.mkstemp(suffix=".txt", prefix="dnd-dmhelp-sysprompt-")
+    try:
+        with open(fd, "w", encoding="utf-8") as f:
+            f.write(system)
+        result = subprocess.run(
+            [
+                claude_bin, "-p",
+                "--model", "claude-sonnet-4-6",
+                "--system-prompt-file", sys_prompt_path,
+            ],
+            input=prompt,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=60,
+        )
+    finally:
+        pathlib.Path(sys_prompt_path).unlink(missing_ok=True)
 
     if result.returncode != 0:
         return "SKIP"
@@ -319,6 +338,7 @@ def send_tutor(text: str) -> None:
         [sys.executable, str(SEND_PY), "--tutor"],
         input=text,
         text=True,
+        encoding="utf-8",
         capture_output=True,
     )
 
