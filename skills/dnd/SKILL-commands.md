@@ -7,62 +7,32 @@ Full step-by-step procedures for all `/dm:dnd` slash commands. Load this file at
 ---
 
 ## `/dm:dnd new <campaign-name> [theme]`
-1. **Session setup — call `AskUserQuestion`** with **two questions**:
 
-   **Q1 *"Display & input mode?"***
-   - `No display` → continue without display.
-   - `Display (local)` → `bash ${CLAUDE_SKILL_DIR}/display/start-display.sh`, print URL, set `_display_running = true`, then `python3 ${CLAUDE_SKILL_DIR}/display/push_stats.py --clear`.
-   - `Display (LAN)` → `bash ${CLAUDE_SKILL_DIR}/display/start-display.sh --lan`, print both URLs, set `_display_running = true`, then `--clear` as above.
-   - `Display + autorun (LAN)` → as **Display (LAN)**, and write `autorun: true` to `state.md → ## Session Flags`.
+Cette campagne migre une partie WFRP4 déjà très avancée depuis des chroniques existantes.
+**Ne génère aucun contenu.** Cette procédure crée uniquement la coquille de fichiers ; le
+contenu réel (état, monde, PNJ, personnage, archive de séances) est déposé ensuite via les
+prompts de dérivation fournis par le joueur.
 
-   **Q2 *"Dice rolls?"*** — set how PC d20s are handled (see SKILL.md "Dice convention"):
-   - `Players roll their own` (default) → write `roll_mode: players` to `state.md → ## Session Flags`. You will call for each PC roll and wait — never auto-roll a PC.
-   - `DM rolls everything openly` → write `roll_mode: auto`. You resolve PC rolls yourself with full math shown.
-
-   Default to `roll_mode: players` if the question is dismissed.
-2. **Ruleset selection (added 2026-05-08).** Ask: *"D&D 5e ruleset for this campaign? **2014** (SRD 5.1, default — full mechanics, classic Player's Handbook structure) or **2024** (SRD 5.2, weapon mastery + origin feats + background ASIs + revised exhaustion)?"* Default to `2014` if no answer or ambiguous. Write the chosen value to `state.md` header line as `**Ruleset:** 2014` or `**Ruleset:** 2024`.
-
-   If 2024 was chosen: verify the dataset exists with `ls ${CLAUDE_SKILL_DIR}/data/dnd5e_srd_2024.json`. If missing, run `python3 ${CLAUDE_SKILL_DIR}/scripts/build_srd.py --ruleset 2024` (one-time, ~3 min). Until the dataset exists, lookup-based features will fall back to 2014.
-3. `mkdir -p ~/.claude/dnd/campaigns/<name>/characters`
-4. Copy and populate templates from `${CLAUDE_SKILL_DIR}/templates/` — state.md, world.md, npcs.md, session-log.md. The state.md header keeps the `**Ruleset:**` field set in step 2.
-5. Ask: **party size** and **starting level**
-6. **Tone/Genre Wizard** — present all four in one message:
-   - Tone: `grimdark / dark fantasy / heroic / horror / political / swashbuckling / cosmic`
-   - Magic level: `none / low / medium / high`
-   - Setting type: `medieval / renaissance / ancient / nautical / underground`
-   - Danger level: `lethal / gritty / standard / heroic`
-   *(If `[theme]` supplied, pre-fill Tone and ask remaining three. Randomise any blank via dice.py and log `"d6=N → [result]"` in world.md.)*
-7. **World Foundations** — geography/biome/climate, magic system, pantheon (2–3 active deities), calendar. Write to `## World Foundations` in world.md. Seed `state.md → ## World State → In-world date`.
-8. **Three Truths** — one settlement, one nearby threat, one mystery (with clue trail). Write to respective sections in world.md.
-9. **Threat Escalation Arc** — fill the five-stage table in world.md immediately after threat generation. Set current stage to 1. Write `Threat arc stage: 1 — Now` to `state.md → ## World State`.
-10. **2 Factions** — archetype, all fields including current activity. Write to `## Factions` in world.md. Write one-line faction states to `state.md → ## World State`.
-11. **3 NPCs with relationship web** — full entries (role, stats, demeanor, motivation, secret, speech quirk, faction, current goal, schedule, personality axes). Generate all three first, then fill Relationships (every NPC needs ≥2 links to others). Update index table.
-12. **3–5 Quest Seeds** from threat, factions, mystery, NPC motivations. Write to `## Quest Seed Bank` in world.md.
-13. **Dynamic Campaign Arc** — auto-generate the arc from all world data just created. Use Opus for this step. Ask: *"Generate a committed narrative arc? [y/n — recommended]"*
-
-   **If yes:** Drawing from theme, threat arc stages, factions, Three Truths, NPC motivations, and quest seeds, derive:
-   - **`theme`** — one sentence: what is this story ultimately about? Not the threat — its meaning.
-   - **`resolution`** — the committed endpoint shape: if the party succeeds, what's the emotional truth? Keep specific events open; commit to the shape.
-   - **Acts 1–3**, each with 2 beats. Each beat has:
-     - `label` — a dramatic name
-     - `what_changes` — before/after: what's fundamentally different once this lands? **CRITICAL: write this as a CONSEQUENCE, not an event.** A consequence is a state-of-the-world after the beat. An event is one specific thing that happens. Consequences survive when players pre-empt the obvious event delivery; events break and the beat goes stale. Example contrast for a 2b "All Is Lost" beat:
-       - ❌ Event-shaped (fragile): *"Vedra's nomination succeeds and she takes the third seat."* If the party flips the clerk, this can't land — beat goes stale.
-       - ✅ Consequence-shaped (robust): *"The party experiences a concrete cost from the Kept's escalation that they cannot reverse — a cover blown, an ally compromised, or a position they relied on no longer available."* This survives multiple delivery paths.
-     - `world_pressure` — the specific faction or NPC move (naming actual entities from this world) that makes the beat feel inevitable. This MAY be event-shaped — but if the players pre-empt it, you're expected to revise per SKILL.md rule 8 (pre-emption is a revision trigger).
-   - **`steering_notes`** — how to reach the first beat without forcing it
-
-   Beat layout:
-   - Act 1: **1a Inciting Incident** (the threat becomes personal for the party), **1b Complication** (the problem is bigger or stranger than it first appeared)
-   - Act 2: **2a Midpoint Shift** (what the party *thought* they were doing changes), **2b All Is Lost** (a genuine setback — something fails, is lost, or collapses)
-   - Act 3: **3a Final Confrontation** (the decisive moment the campaign turns on), **3b Resolution** (what's different about the world and the characters after)
-
-   Write to `state.md → ## Campaign Arc` with `type: dynamic`. Deliver a one-paragraph arc summary to the DM.
-
-   **If no:** Write `type: sandbox` to `## Campaign Arc`. The story remains open-ended with no arc tracking.
-
-14. Write state.md with session count 0, starting location.
-15. **Physical dice server check (only if installed).** Skip this step unless the optional dice server is set up: probe with `test -d ~/.dnd-dice || test "$DND_DICE_PHYSICAL" = "1"` and short-circuit out if the test fails. When it passes, run `curl -sf http://localhost:7777/health` (timeout 1s). If it returns OK, fetch the LAN IP with `python3 -c "import socket; s=socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.connect(('8.8.8.8', 80)); print(s.getsockname()[0]); s.close()"` and announce: *"Dice server is up. Once each player has made a character via `/dm:dnd character new`, they should open `http://<ip>:7777/?player=<pc-name>` on their phone (lowercase, hyphens for spaces) and tap **consecrate** before play starts. NPC/DM rolls auto-resolve on the host."* If unreachable, skip silently.
-16. Confirm creation, offer `/dm:dnd character new`.
+1. `mkdir -p ~/.claude/dnd/campaigns/<name>/characters`
+2. Copie les templates WFRP4 (déjà adaptés, pas les templates 5e amont) depuis
+   `${CLAUDE_SKILL_DIR}/templates/` vers le dossier de campagne : `state.md`, `world.md`,
+   `npcs.md`, `session-log.md`.
+3. Dans `state.md`, écris l'en-tête : `# Campagne : <nom>` · `**Système :** WFRP4 (d100
+   sous-seuil, Degrés de Réussite)` · `**Langue de jeu : FRANÇAIS**`. **Aucune question de
+   ruleset D&D — ce champ n'existe pas dans cette campagne.**
+4. Écris `roll_mode: auto` dans `## Session Flags` sans le demander — c'est un engagement de
+   table fixe (le MJ lance tous les dés, y compris ceux du joueur). Ne pose pas la question
+   « Dice rolls? ».
+5. Écris `type: sandbox` dans `## Campaign Arc` sans le demander. Pas d'arc à six beats, pas de
+   Tone Wizard, pas de Trois Vérités, pas de génération de factions ni de PNJ. L'armature
+   narrative vit dans `world.md`, à peupler séparément.
+6. **Une seule question via `AskUserQuestion`** : *« Affichage ? »* avec les options `Aucun
+   affichage` · `Affichage (local)` · `Affichage (LAN)`. Applique le choix comme dans la
+   procédure `/dm:dnd load` amont (démarrage du serveur, `push_stats.py --clear`).
+7. Confirme la création et affiche : *« Coquille créée. Dépose maintenant state.md, world.md,
+   npcs.md, characters/Erys.md et l'archive de séances via les prompts de dérivation, puis
+   lance `/dm:dnd load <name>`. »* **N'offre pas `/dm:dnd character new`** — il n'y a pas de
+   création de personnage 5e dans cette campagne.
 
 ---
 
@@ -477,12 +447,11 @@ Exit the current session **without saving any state changes**. Use this when an 
 ---
 
 ## `/dm:dnd data [sync|status]`
-- `sync` → `python3 ${CLAUDE_SKILL_DIR}/scripts/sync_srd.py` — checks upstream SHAs (5e-bits + FoundryVTT) and rebuilds `dnd5e_srd.json` only if either source has new commits
-- `sync --force` → `python3 ${CLAUDE_SKILL_DIR}/scripts/sync_srd.py --force` — rebuild regardless
-- `sync --check` → check upstream without rebuilding
-- `status` → `python3 ${CLAUDE_SKILL_DIR}/scripts/build_srd.py --status` — show current dataset metadata
 
-Dataset is bundled at `${CLAUDE_SKILL_DIR}/data/dnd5e_srd.json` (1453 records: spells, equipment, magic items, conditions, monsters, class features). No download required at runtime. Run `sync` only when you want to pull new upstream content.
+**Neutralisé pour cette campagne.** Il n'y a pas de dataset SRD 5e à synchroniser — la
+résolution passe uniquement par `scripts/wfrp.py`. Réponds : *"Cette campagne n'utilise pas de
+données 5e à synchroniser. La résolution WFRP4 (d100 sous-seuil) ne dépend d'aucun dataset —
+voir `scripts/wfrp.py`."*
 
 ---
 
@@ -525,53 +494,11 @@ Read `~/.claude/dnd/campaigns/*/state.md`, print summary table: campaign name | 
 
 ## `/dm:dnd character new [campaign-name]`
 
-**Read the campaign's ruleset first** — `python3 ${CLAUDE_SKILL_DIR}/scripts/paths.py` is not a CLI; instead inline-read with:
-
-```bash
-python3 -c "import sys; sys.path.insert(0,'${CLAUDE_SKILL_DIR}/scripts'); from paths import campaign_ruleset; print(campaign_ruleset('<campaign>'))"
-```
-
-The result drives branching at steps 1 (ASI source), 4 (origin feat), and 5 (subclass timing). The default `2014` applies for legacy campaigns predating the ruleset field.
-
-**First, offer the two build paths — call `AskUserQuestion`:** *"How do you want to build [or: your character]?"*
-- `Step by step` → the guided flow below (steps 1–10). Use this when the player wants to make each choice deliberately, or already knows the exact build.
-- `Describe it` → the prose path (step 0 below). Use this when the player would rather say who the character is in a sentence and let you assemble a legal sheet.
-
-Default to `Step by step` if the question is dismissed. Either path lands in the same sheet and runs the same validation, calc, and write steps — the only difference is how the choices are gathered.
-
-0. **Describe-it path.** Ask one open question: *"In a sentence or two, describe your character — who they are, how they fight or solve problems, where they come from. I'll build a legal, level-appropriate 5e sheet from it and show you before anything's written."* Then:
-
-   a. **Derive the build from the prose, model-side.** Map the description to a legal 5e chassis for this campaign's ruleset: **class** (and, if the level warrants it, subclass per the ruleset's timing — see step 5), **species/race**, **background**, ability-score priorities (which two or three scores the concept leans on), skill/tool proficiencies the class+background grant, a fighting style or starting spells if the class has them, and a one-line **Character Pillar** (Bond / Flaw / Ideal / Goal — the same field step 2 fills). Read the description for what the player actually cares about — a "disgraced temple guard who talks their way out of fights" is a Paladin or Cleric with a Soldier/Acolyte background and CHA/CON priority, not a generic pick. Never invent a detail the prose contradicts; where the prose is silent, choose the most concept-fitting legal option and note it as a choice, not a fact.
-
-   b. **Validate against 5e legality before showing anything.** The derived sheet must be legal for the campaign's ruleset and the agreed starting level: class/species/background all exist in 5e (SRD or a source the table allows — look up anything you're unsure of via `lookup.py`), ability scores come from a legal method (roll or point buy — step 3), ASI source matches the ruleset (race in 2014, background + one origin feat in 2024 — step 1), proficiencies are actually granted by the chosen class+background (no double-dipping, no out-of-list picks), and any spells/features are available at this level. If the concept implies something illegal (a level-1 character with a capstone feature, a subclass earlier than the ruleset grants it), pick the closest legal equivalent and say so.
-
-   c. **Present the derived sheet for one confirmation.** Show the full build — species/race, class (+ subclass if any), background, ability array with the concept's priorities assigned, proficiencies, starting kit, and the derived Pillar with its source sentence — and ask: *"This is what I read from your description. Change anything, or shall I roll it up?"* Let the player adjust any field in prose; re-validate after any change.
-
-   d. **Converge into the shared flow.** On confirmation, run the name-uniqueness check (step 1's `name_registry.py check`), then continue at **step 3** (finalize ability scores — reuse the derived priorities), **step 4** (racial/background bonuses + `character.py calc`), and steps 6–10 (equipment, write, roster mirror, supplemental builder). Do not re-ask the step-by-step questions the description already answered; only fill genuine gaps.
-
-1. Ask: name, **species** (2024) or **race** (2014), class, background.
-
-   **Name uniqueness check:** run `python3 ${CLAUDE_SKILL_DIR}/scripts/name_registry.py check "<name>"`. Exit 1 (duplicate) → surface prior use; player confirms or changes. Record after step 9.
-
-   **2014 (race-as-ASI):** the species/race grants ability score increases (e.g. Wood Elf: +2 DEX, +1 WIS). Apply to abilities at step 4.
-   **2024 (background-as-ASI):** the **background** grants the +2/+1 ability score increase OR three +1s, AND a free **Origin Feat** (e.g. Magic Initiate, Lucky, Tough). Species grants traits but no ability scores. Players in 2024 must pick background BEFORE rolling abilities — the background's ASI pattern dictates which scores benefit.
-2. Ask: *"In a sentence, what should the DM know about [Name]?"*
-   - If answered: derive ONE pillar — **Bond**, **Flaw**, **Ideal**, or **Goal** (whichever fits best). Store both the raw sentence and derived pillar in `## Character Pillar`.
-   - If skipped: leave `## Character Pillar` blank. Do not invent one. Do not re-prompt.
-3. Ask: roll or point buy
-   - Roll → `ability-scores.py roll`, present 3 arrays, player assigns
-   - Point buy → `ability-scores.py pointbuy --check <scores>` to validate
-4. Apply racial bonuses. Run `character.py calc` to derive all secondary stats.
-5. Ask: Fighting Style (Fighter/Paladin/Ranger), spells (if caster)
-6. Assign starting equipment per class + background
-7. Write to `characters/<name>.md` using `templates/character-sheet.md`; set `## Campaign History → Origin campaign`
-8. Add to `state.md` party line
-9. Mirror to global roster: `cp characters/<name>.md ~/.claude/dnd/characters/<name>.md`
-10. Run supplemental builder to fetch any non-SRD spells/features the character uses:
-    ```bash
-    python3 ${CLAUDE_SKILL_DIR}/scripts/build_supplemental.py --character ~/.claude/dnd/campaigns/<name>/characters/<charname>.md
-    ```
-    This scans the character file for spells and features not in the SRD and fetches descriptions from dnd5e.wikidot.com into `dnd5e_supplemental.json`. Skips any entries already present. Safe to re-run.
+**Neutralisé pour cette campagne.** Il n'y a pas de création de personnage 5e — Erys Reinholt
+existe déjà, importé depuis les chroniques. Réponds : *"Cette campagne n'utilise pas de création
+de personnage 5e. Erys Reinholt est déjà défini dans `characters/Erys.md`. La progression se fait
+par jalons — voir `/dm:dnd` et la section Jalons de SKILL.md."* Ne lance aucune procédure de
+build 5e (ability scores, race/background, subclass, etc.).
 
 ---
 
@@ -596,29 +523,12 @@ Read `characters/<name>.md`, display cleanly. If name omitted and one character 
 ---
 
 ## `/dm:dnd level up [name]`
-1. **XP gate — check first:**
 
-   | Level | XP required | Level | XP required |
-   |-------|-------------|-------|-------------|
-   | 2 | 300 | 11 | 85,000 |
-   | 3 | 900 | 12 | 100,000 |
-   | 4 | 2,700 | 13 | 120,000 |
-   | 5 | 6,500 | 14 | 140,000 |
-   | 6 | 14,000 | 15 | 165,000 |
-   | 7 | 23,000 | 16 | 195,000 |
-   | 8 | 34,000 | 17 | 225,000 |
-   | 9 | 48,000 | 18 | 265,000 |
-   | 10 | 64,000 | 19 | 305,000 |
-   |    |         | 20 | 355,000 |
-
-   Insufficient XP → report deficit and stop. Only continue on explicit DM override.
-2. Read sheet. Run `character.py levelup`. Apply class features. Ask for HP roll or average. Update sheet + global roster. Narrate the growth.
-
-   **Ruleset-aware subclass timing (added 2026-05-08):** read campaign ruleset via `paths.campaign_ruleset(<campaign>)`.
-   - **2014:** Subclass selection happens at the class's specified level (Cleric/Sorcerer/Warlock at 1; Druid/Wizard at 2; most others at 3).
-   - **2024:** Subclass selection unifies at **level 3** for ALL classes. If the player is hitting level 3 in a 2024 campaign and hasn't picked a subclass yet, prompt for it. Class features that 2014 placed at level 1 (e.g. Cleric Domain) shift to level 3 in 2024.
-
-   **Weapon Mastery (2024 only):** Fighter/Barbarian/Paladin/Ranger gain Weapon Mastery at level 1 (Fighter knows 3 mastery properties; others know 2). Track which properties the character knows on the sheet under `## Class Features → Weapon Mastery: <list>`. Properties are picked from the eight in `data/dnd5e_srd_2024.json → weapon_mastery_properties`. The character can use mastery only with weapons that have the matching property (look up on `data/dnd5e_srd_2024.json → equipment[…].mastery`).
+**Neutralisé pour cette campagne.** Il n'y a ni niveau ni XP dans cette campagne. Réponds :
+*"Cette campagne n'utilise pas de niveaux ni d'XP. La progression se fait par jalons — 3 jalons
+mineurs valent un jalon majeur, qui ouvre un palier de carrière. Voir la section Jalons de
+SKILL.md, ou utilise `/dm:dnd pin` / propose un jalon directement en jeu."* Ne lance aucune
+procédure de gain de niveau 5e (gate XP, subclass, weapon mastery).
 
 ---
 

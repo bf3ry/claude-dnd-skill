@@ -1,96 +1,76 @@
-# <Name>
-**Player:** <player>  **Campaign:** <campaign>  **Last Updated:** <date>
+# <Nom>
+**Joueur :** <joueur>  **Campagne :** <campagne>  **Dernière mise à jour :** <date>
 
-## Identity
-- **Race:** | **Class:** | **Level:** | **Background:**
-- **Alignment:** | **XP:** / <next level threshold>
+## Identité
+- **Espèce :** | **Carrière actuelle :** | **Palier de carrière :**
+- **Carrière précédente :** <ou néant> | **Statut :** <ex : Or 0 / Argent 0 / Bronze 0>
 
-## Character Pillar
-- **Player's sentence:** *"<the raw one-sentence answer to "what should the DM know about you?">"*
-- **Derived pillar:** <Bond / Flaw / Ideal / Goal> — <one-statement distillation>
-- **Active hooks:** <how the DM is currently using this pillar in play — update each session>
+## Pilier de personnage
+- **Phrase du joueur :** *"<la phrase brute répondant à « qu'est-ce que le MJ doit savoir sur toi ? »>"*
+- **Pilier dérivé :** <Lien / Faille / Idéal / But> — <distillation en une phrase>
+- **Accroches actives :** <comment le MJ utilise ce pilier en jeu actuellement — à mettre à jour chaque séance>
 
-*(Leave blank if player skipped — do not invent one.)*
+*(Laisser vide si le joueur a passé son tour — ne pas en inventer un.)*
 
-## Campaign History
-- **Origin campaign:** <campaign name this character was created in>
-- **Previous campaigns:** <list any prior campaigns, in order>
+## Historique de campagne
+- **Campagne d'origine :** <nom de la campagne où ce personnage a été créé>
+- **Campagnes précédentes :** <liste, dans l'ordre>
 
-## Ability Scores
-| STR | DEX | CON | INT | WIS | CHA |
-|-----|-----|-----|-----|-----|-----|
-| XX (+X) | XX (+X) | XX (+X) | XX (+X) | XX (+X) | XX (+X) |
+## Caractéristiques
+| CC | CT | F | E | Ag | Dex | I | Int | FM | Soc |
+|----|----|---|---|----|----|---|----|----|----|
+| XX | XX | XX | XX | XX | XX | XX | XX | XX | XX |
 
-*Base scores via <roll/point buy>. Racial bonuses applied.*
+*Toute résolution passe par `scripts/wfrp.py test --carac <valeur> --label "<compétence> (<carac>)"`. Ne jamais calculer un test de tête.*
 
-## Combat Stats
-- **HP:** current / max | **Temp HP:** 0
-- **AC:** | **Initiative:** | **Speed:**
-- **Hit Dice:** Xd[Y] (remaining: X)
-- **Death Saves:** Successes: 0 | Failures: 0
+## Blessures
+- **Blessures :** actuelles / max | **Points d'Armure (par localisation) :** Tête __ Corps __ Bras __ Jambes __
+- **États :** <Étourdi / Entravé / À terre / Saignement / etc. — liste active>
+- **Mouvement :** | **Marche :** | **Course :**
 
-## Saving Throws
-| STR | DEX | CON | INT | WIS | CHA |
-|-----|-----|-----|-----|-----|-----|
-| +X | +X | +X | +X | +X | +X |
+*Pas de points de vie, pas de CA. Les Blessures descendent, l'Armure absorbe avant les Blessures.*
 
-*\* = proficient (proficiency bonus +X)*
+## Résonance
+- **Résonance :** [Résonance X/8] — à mettre à jour entre crochets **à chaque dépense**, sans exception.
+- **Symptômes de Corruption / mutations actives :** <liste, ou néant>
 
-## Skills
-| Skill | Ability | Bonus | Proficient |
-|-------|---------|-------|-----------|
-| Acrobatics | DEX | +0 | — |
-| Animal Handling | WIS | +0 | — |
-| Athletics | STR | +0 | — |
-| Arcana | INT | +0 | — |
-| Deception | CHA | +0 | — |
-| History | INT | +0 | — |
-| Insight | WIS | +0 | — |
-| Intimidation | CHA | +0 | — |
-| Investigation | INT | +0 | — |
-| Medicine | WIS | +0 | — |
-| Nature | INT | +0 | — |
-| Perception | WIS | +0 | — |
-| Performance | CHA | +0 | — |
-| Persuasion | CHA | +0 | — |
-| Religion | INT | +0 | — |
-| Sleight of Hand | DEX | +0 | — |
-| Stealth | DEX | +0 | — |
-| Survival | WIS | +0 | — |
+## Carrière
+- **Carrière :** <nom> | **Palier :** <1-4> | **Classe de carrière :** <Académique / Bourgeois / Courtisan / Errant / Guerrier / Marchand / Paysan / Rôdeur / Souteneur>
+- **Carrières précédentes :** <liste des paliers/carrières déjà tenus>
+- **Talents :** <liste>
+- **Compétences avancées :** <liste — compétences non basiques nécessitant un apprentissage>
 
-## Attacks
-| Name | Attack Bonus | Damage | Type | Notes |
-|------|-------------|--------|------|-------|
+## Disciplines
+<Disciplines du don/Conduit débloquées à ce palier — nom, coût en Résonance si applicable, effet résumé>
+-
+
+## Compétences
+| Compétence | Caractéristique | Avancée (oui/non) |
+|------------|-----------------|--------------------|
+| | | |
+
+## Attaques
+| Nom | Groupe d'armes | Portée/Allonge | Dégâts | Notes |
+|-----|----------------|----------------|--------|-------|
 | | | | | |
 
-## Spell Slots (if applicable)
-| Level | Total | Used |
-|-------|-------|------|
-| 1st | | |
-
-## Known Spells / Cantrips
-
-## Features & Traits
-
-### <Class>
+## Équipement
+**Armes :**
 -
 
-### <Race> Racial
+**Armure :**
 -
 
-### <Background> Background
+**Matériel :**
 -
 
-## Equipment & Inventory
-**Weapons:**
--
+**Fortune :** <PO> po <PA> pa <PB> pb
 
-**Armour:**
--
+## Jalons
+- **Compteur de jalons mineurs :** 0/3
+- **Jalons mineurs obtenus :** <liste — une ligne par jalon, avec la raison>
+- **Dernier jalon majeur :** <date/session — ce qu'il a débloqué>
 
-**Adventuring Gear:**
--
+*Aucune XP, aucun niveau. Voir la section Jalons de SKILL.md pour la procédure d'attribution.*
 
-**Currency:** 0gp 0sp 0cp
-
-## Backstory & Notes
+## Historique & Notes
