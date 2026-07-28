@@ -8,12 +8,19 @@ Sortie au FORMAT COMPLET impose par la regle de table n.6 :
 
 Usage :
     python3 wfrp.py test --carac 46 --label "Channelling (FM)" --diff tres_difficile
+    python3 wfrp.py test --carac 46 --avances 7 --label "Channelling (FM)" --diff difficile
     python3 wfrp.py test --carac 31 --label "Corps a corps (CC)" --mod +10 --av 2
     python3 wfrp.py test --carac 36 --label "Intuition (Int)" --roll 47      # rejouer un jet
     python3 wfrp.py oppose --a 46 --a-label "Erys (FM)" --b 38 --b-label "Cible (FM)" --a-diff difficile
     python3 wfrp.py diff                                                     # table des difficultes
 
 Table de difficulte = celle du livre WFRP4 officiel (7 paliers, +60 a -30).
+
+--carac attend toujours la CARACTERISTIQUE BRUTE du personnage. --avances (optionnel,
+defaut 0) porte les avances de competence, distinctes de la caracteristique, documentees
+par personnage (ex. characters/<PC>.md -> Competences avancees). Le seuil final = carac +
+avances + mod + diff_mod + (10 x avantage) ; la ligne affichee montre le detail carac +
+avances quand avances != 0, pour que le jet reste tracable.
 """
 
 import argparse
@@ -36,11 +43,15 @@ def tens(n):
     return n // 10
 
 
-def resolve(carac, mod=0, advantage=0, diff=None, roll=None):
-    """Resout un test d100 WFRP4. Retourne un dict."""
+def resolve(carac, mod=0, advantage=0, diff=None, roll=None, avances=0):
+    """Resout un test d100 WFRP4. Retourne un dict.
+
+    carac = caracteristique brute. avances = avances de competence (separees,
+    documentees par personnage). target = carac + avances + mod + diff_mod + 10*avantage.
+    """
     diff_mod, diff_name = DIFF.get(diff, (0, None))
-    target = carac + mod + diff_mod + (advantage * 10)
-    target = max(0, min(100, target))
+    target = carac + avances + mod + diff_mod + (advantage * 10)
+    target = max(0, target)
 
     if roll is None:
         roll = random.randint(1, 100)
@@ -66,7 +77,7 @@ def resolve(carac, mod=0, advantage=0, diff=None, roll=None):
     fumble = is_double and not success
 
     return {
-        "roll": roll, "target": target, "carac": carac, "mod": mod,
+        "roll": roll, "target": target, "carac": carac, "avances": avances, "mod": mod,
         "advantage": advantage, "diff_mod": diff_mod, "diff_name": diff_name,
         "success": success, "sl": sl, "crit": crit, "fumble": fumble,
         "forced": forced,
@@ -90,7 +101,13 @@ def fmt(r, label="Test"):
     if r["fumble"]:
         verdict = "MALADRESSE"
 
-    line = (f"{label} {r['carac']} | {modtxt} -> seuil {r['target']} | "
+    avances = r.get("avances", 0)
+    if avances:
+        carac_txt = f"{r['carac']} + {avances} avances = {r['carac'] + avances}"
+    else:
+        carac_txt = f"{r['carac']}"
+
+    line = (f"{label} {carac_txt} | {modtxt} -> seuil {r['target']} | "
             f"d100 = {r['roll']:02d} -> {verdict}, DR {r['sl']:+d}")
     if r["forced"]:
         line += f"  [{r['forced']}]"
@@ -102,7 +119,9 @@ def main():
     sub = p.add_subparsers(dest="cmd", required=True)
 
     t = sub.add_parser("test")
-    t.add_argument("--carac", type=int, required=True)
+    t.add_argument("--carac", type=int, required=True, help="caracteristique brute")
+    t.add_argument("--avances", type=int, default=0,
+                    help="avances de competence (separees de --carac, documentees par personnage), defaut 0")
     t.add_argument("--label", default="Test")
     t.add_argument("--mod", type=int, default=0)
     t.add_argument("--av", type=int, default=0, help="points d'Avantage (+10 chacun)")
@@ -129,7 +148,7 @@ def main():
         return
 
     if a.cmd == "test":
-        r = resolve(a.carac, a.mod, a.av, a.diff, a.roll)
+        r = resolve(a.carac, a.mod, a.av, a.diff, a.roll, a.avances)
         print(fmt(r, a.label))
         return
 

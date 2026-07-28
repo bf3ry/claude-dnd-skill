@@ -56,6 +56,20 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/wfrp.py oppose --a 46 --a-label "Erys (FM)" 
 engagement de table : le joueur veut voir compétence, caractéristique, modificateur, seuil, dé,
 verdict et marge. Un jet résumé est une faute.
 
+**Caractéristique brute vs compétence avancée** — `--carac` porte toujours la caractéristique
+brute du personnage ; `--avances` (optionnel, défaut 0) porte les avances de compétence propres à
+cette campagne, construites par preuve de jeu et documentées dans `characters/<PC>.md → Compétences
+avancées`. Ne jamais inventer une avance non documentée là — une compétence sans ligne dans cette
+table se teste sur la caractéristique brute, `--avances 0`.
+
+**Résolution en deux temps pour toute Discipline/sort "Violent" ou agressif** (spécifique aux
+personnages Conduit de cette campagne, voir `characters/Erys.md → Résolution en deux temps`) :
+1. **Toujours** — test de Channelling (caractéristique + avances de Channelling) pour ouvrir l'effet.
+2. **Uniquement si l'usage vise une cible qui résiste** — test opposé de Discipline (caractéristique
+   + avances de Discipline) contre la Force ou la Discipline/FM de la cible.
+Un usage non-agressif (déplacer un objet, soigner, sonder un lieu, ouvrir une porte) s'arrête à
+l'étape 1 — ne jamais imposer un test opposé sans cible résistante réelle.
+
 **Blessures**, pas de points de vie : pas de CA, pas d'emplacements de sorts, pas de niveaux, pas d'XP.
 **Résonance** : ressource propre au Conduit, suivie entre crochets `[Résonance 6/8]` **à chaque dépense**,
 sans exception.
