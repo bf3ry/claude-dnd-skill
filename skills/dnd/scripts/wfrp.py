@@ -13,8 +13,7 @@ Usage :
     python3 wfrp.py oppose --a 46 --a-label "Erys (FM)" --b 38 --b-label "Cible (FM)" --a-diff difficile
     python3 wfrp.py diff                                                     # table des difficultes
 
-Conventions de CETTE campagne (backend v3) :
-    Difficile = -10 · Tres Difficile = -20
+Table de difficulte = celle du livre WFRP4 officiel (7 paliers, +60 a -30).
 """
 
 import argparse
@@ -24,11 +23,11 @@ import sys
 DIFF = {
     "tres_facile":    (+60, "Tres Facile"),
     "facile":         (+40, "Facile"),
-    "moyenne":        (+20, "Moyenne"),
-    "ordinaire":      (0,   "Ordinaire"),
-    "difficile":      (-10, "Difficile"),
-    "tres_difficile": (-20, "Tres Difficile"),
-    "ardu":           (-30, "Ardu"),
+    "accessible":     (+20, "Accessible"),
+    "intermediaire":  (0,   "Intermediaire"),
+    "complexe":       (-10, "Complexe"),
+    "difficile":      (-20, "Difficile"),
+    "tres_difficile": (-30, "Tres Difficile"),
 }
 
 

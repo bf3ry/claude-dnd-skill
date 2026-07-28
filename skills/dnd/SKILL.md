@@ -41,8 +41,10 @@ Test = d100 **sous** un seuil. Seuil = caractéristique + modificateurs + (10 ×
 96-100 échoue toujours. Un **double** (11, 22, … 99, 100) transforme une réussite en critique et un
 échec en maladresse.
 
-Table de difficulté **de cette campagne** (le backend fait foi, elle diffère de certaines VF) :
-Très Facile +60 · Facile +40 · Moyenne +20 · Ordinaire 0 · **Difficile −10** · **Très Difficile −20** · Ardu −30.
+Table de difficulté — alignée sur le livre WFRP4 officiel (le backend fait foi) :
+Très Facile +60 · Facile +40 · Accessible +20 · Intermédiaire 0 · Complexe −10 · **Difficile −20** · **Très Difficile −30**.
+
+**Utilise toute la gamme des sept paliers selon la difficulté réelle de l'action narrée** — ne te limite pas par habitude à Difficile/Très Difficile. Un jet routinier, ou favorisé par les circonstances (bon éclairage, préparation, terrain familier), doit être annoncé Facile, Accessible ou Intermédiaire, pas systématiquement pénalisé. La difficulté doit refléter la fiction, pas un réflexe de table.
 
 ```bash
 python3 ${CLAUDE_SKILL_DIR}/scripts/wfrp.py test --carac 46 --label "Channelling (FM)" --diff tres_difficile
