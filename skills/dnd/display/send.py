@@ -79,6 +79,14 @@ TIMEOUT     = 8.0
 RETRIES     = 1                # one retry on timeout/connection error
 CHUNK_LIMIT = 3500             # paragraph-split text bodies above this many chars
 
+# Marker file debouncing the "display offline" warning (see _warn_display_offline
+# below). Each send.py invocation is a fresh process — without a marker on disk,
+# every single call during an outage would reprint the warning, drowning the
+# narration in noise. Removed on the next successful send, so a later outage
+# (display restarted then dropped again) warns again instead of staying silent
+# for the rest of the session.
+_OFFLINE_WARN_FILE = rt(".display_offline_warned")
+
 # Send-side counters tracked across the script's lifetime (one process per call).
 # Used by the post-send self-check to detect skipped or failed sends BEFORE the
 # script exits, surfacing problems to stderr where Bash output is visible.
@@ -98,6 +106,48 @@ def _read_token() -> str:
         return open(TOKEN_FILE, encoding="utf-8").read().strip()
     except FileNotFoundError:
         return ""
+
+
+def _warn_display_offline() -> None:
+    """Print a one-time, visible warning when the display can't be reached.
+
+    Debounced via _OFFLINE_WARN_FILE: prints once per outage, not once per
+    send.py call (a single scene can fire a dozen sends). Silence was the old
+    behavior and it hid real outages from the DM; this replaces it without
+    turning every blocked send into a repeated wall of text.
+    """
+    try:
+        if os.path.exists(_OFFLINE_WARN_FILE):
+            return  # already warned for this outage
+    except OSError:
+        pass
+    # Write raw UTF-8 bytes to the underlying buffer rather than using text-mode
+    # print(): on Windows, sys.stderr encodes with the console's active code
+    # page (rarely UTF-8), which mangles ⚠/é/— into mojibake or "\uXXXX"
+    # escapes. Same class of bug _read_stdin_utf8() works around on the input
+    # side above.
+    _msg = (
+        "\n⚠ Display hors ligne (port 5001) — la narration ne sera pas affichée. "
+        "Relancer avec /dm:dnd load ou redémarrer le serveur.\n"
+    )
+    try:
+        sys.stderr.buffer.write(_msg.encode("utf-8"))
+        sys.stderr.buffer.flush()
+    except Exception:
+        print(_msg, file=sys.stderr)
+    try:
+        with open(_OFFLINE_WARN_FILE, "w", encoding="utf-8") as f:
+            f.write(str(time.time()))
+    except OSError:
+        pass
+
+
+def _clear_offline_warning() -> None:
+    """Drop the debounce marker on a successful send so the next outage warns again."""
+    try:
+        os.remove(_OFFLINE_WARN_FILE)
+    except OSError:
+        pass
 
 
 def _endpoint_label(url: str) -> str:
@@ -129,6 +179,7 @@ def _post(url: str, data: bytes, token: str) -> bool:
             # Server uses 204 (no content) for success; treat any 2xx as OK.
             if 200 <= status < 300:
                 _SEND_LOG.append({"endpoint": label, "ok": True, "status": status, "size": len(data)})
+                _clear_offline_warning()
                 return True
             # Non-2xx: surface body to stderr for diagnosis.
             body_excerpt = resp.read(200).decode("utf-8", errors="replace") if hasattr(resp, "read") else ""
@@ -684,9 +735,9 @@ def main() -> None:
     if failed:
         offline = any(e.get("reason") == "display offline" for e in failed)
         if offline:
-            # Display offline is a known/expected failure mode — one quiet line.
-            print("send.py: display offline — send dropped silently",
-                  file=sys.stderr)
+            # Display offline is a known/expected failure mode — warn once per
+            # outage (see _warn_display_offline) rather than dropping silently.
+            _warn_display_offline()
         else:
             summary = ", ".join(f"{e['endpoint']}={e.get('reason','?')}" for e in failed)
             print(f"send.py: PARTIAL FAILURE — {summary}", file=sys.stderr)
