@@ -401,6 +401,52 @@ If `graph.json` doesn't exist yet for this campaign, skip the sweep entirely (no
 
 ---
 
+## `/dm:dnd quicksave`
+
+**Instantané de sécurité en cours de partie — ce n'est pas une clôture de séance.** Déclenché par
+`/dm:dnd quicksave`, ou par le mot **« quicksave »** écrit seul en cours de jeu. Objectif tenu :
+**moins de 30 secondes au total.** Aucune relecture de fichier, aucun rechargement de contexte,
+aucune narration.
+
+1. **Écrire uniquement les valeurs volatiles**, dans `state.md` et nulle part ailleurs :
+   - `## Current Situation` → le **lieu actuel**, et une ligne **`Reprise :`** d'une seule phrase
+     décrivant l'état exact de la scène en cours (*ex. « Aldous face à l'autel, Erys n'a pas encore
+     répondu »*). Écraser la ligne `Reprise :` précédente s'il y en a une.
+   - `## Live State Flags` → **Résonance actuelle** et **Blessures actuelles**.
+
+   **Ne toucher à rien d'autre.** Pas de `session-log.md`, pas de `## Faction Moves`, pas de
+   `## Recent Events`, pas de `## Continuity Archive`, pas de `graph.json`, pas de
+   `session_tail.json`, pas de fiche de personnage, pas de sweep de relations. Un quicksave qui
+   réécrit une autre section est un quicksave raté.
+
+2. **Enchaîner immédiatement le commit Git**, depuis le dossier de campagne :
+
+   ```bash
+   cd ~/.claude/dnd/campaigns/<name> && git add -A && git commit -m "quicksave — <lieu>, <heure système>"
+   ```
+
+   Si le dossier n'est pas un dépôt git, ou si le commit échoue pour une raison quelconque (rien à
+   committer, index verrouillé, hook en erreur), **le dire au joueur en une ligne explicite** —
+   ne jamais échouer en silence, ne jamais annoncer un commit qui n'a pas eu lieu.
+
+3. **Confirmer en UNE ligne, puis s'arrêter :**
+
+   ```
+   Quicksave ok — <lieu>, Résonance X/Y, Blessures X/Y, commit <hash court>
+   ```
+
+   Pas de récapitulatif, pas de résumé de scène, pas de reprise de narration dans le même bloc.
+   La main revient au joueur immédiatement.
+
+**Rappel horaire.** Pendant une séance, proposer un quicksave environ **toutes les heures de jeu
+réelles**, en une demi-ligne hors fiction (*« — une heure de jeu, quicksave ? »*). Ne jamais couper
+une scène en tension ni un tour d'initiative pour le placer : attendre le premier temps mort. Et
+ne jamais l'exécuter d'office — c'est une proposition, le joueur décide.
+
+`/dm:dnd end` reste inchangé et fait toujours foi pour la clôture réelle d'une séance.
+
+---
+
 ## `/dm:dnd end`
 1. Run `/dm:dnd save`, then:
    a. Append **Session Recap** block to session-log.md with key events and open threads.
