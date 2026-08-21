@@ -48,6 +48,15 @@ import subprocess
 import argparse
 from paths import find_campaign as _find_campaign, display_dir as _display_dir
 
+# This script prints arrows, dashes and accented month names. On Windows the
+# console defaults to cp1252 and a bare print() raises UnicodeEncodeError,
+# which killed `calendar.py advance` after it had already written the file.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):  # not a real stream (piped/captured)
+        pass
+
 SEND_PY = str(_display_dir() / "send.py")
 
 # Time of day labels and approximate hour ranges

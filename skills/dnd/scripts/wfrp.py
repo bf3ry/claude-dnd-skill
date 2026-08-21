@@ -27,6 +27,15 @@ import argparse
 import random
 import sys
 
+# Les libelles de jets portent des tirets cadratins et des accents. Sur Windows
+# la console est en cp1252 et un print() nu leve UnicodeEncodeError, ce qui
+# ferait sauter la ligne de jet en pleine table.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):  # flux non reconfigurable
+        pass
+
 DIFF = {
     "tres_facile":    (+60, "Tres Facile"),
     "facile":         (+40, "Facile"),
